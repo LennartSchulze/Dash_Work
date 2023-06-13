@@ -12,6 +12,8 @@ from shapely.geometry import Point
 from shapely.geometry.polygon import Polygon
 import plotly.express as px
 from google.cloud import storage
+from google.oauth2 import service_account
+import time
 
 st.set_page_config(layout="wide")
 
@@ -51,13 +53,17 @@ def get_map(geolevel):
         loadfile = "states"
 
     source_blob_name = f"{loadfile}.geo.json"
-    storage_client = storage.Client()
+    key_name = os.environ["KEY_NAME"]
+    credentials = service_account.Credentials.from_service_account_file(os.path.join(os.path.join(os.getcwd(),'key'),key_name))
+    storage_client = storage.Client(credentials=credentials)
     bucket = storage_client.bucket(bucket_name)
 
     blob = bucket.blob(source_blob_name)
-    blob.download_to_filename(os.path.join(pathdata, "..", "..", "data","raw_generated", source_blob_name))
+    
+    #blob.download_to_filename(os.path.dirnameos.path.join(pathdata, "..", "..", "data","raw_generated", source_blob_name))
+    blob.download_to_filename(os.path.join(os.path.dirname(os.path.dirname(pathdata)),'data','raw_generated',source_blob_name))
 
-    gdf = gpd.read_file(os.path.join(pathdata, "..", "..", "data","raw_generated", source_blob_name))
+    gdf = gpd.read_file(os.path.join(os.path.dirname(os.path.dirname(pathdata)),'data','raw_generated',source_blob_name))
     return gdf
 
 gdf = get_map(geo_level)
@@ -82,7 +88,7 @@ with col1:
     ## WILL BE DELETED WHEN GEOJSON FILES ARE COMPLETE
     @st.cache_data()
     def get_data():
-        df = pd.read_csv("/Users/lennartschulze/code/LennartSchulze/Dash_Work/notebooks/master_all_jobs.csv", sep=",")
+        df = pd.read_csv("../Dash_Work/notebooks/master_all_jobs.csv", sep=",")
         return df
 
     df = get_data()
@@ -159,7 +165,6 @@ with col1:
         for i in range(len(gdf.geometry)):
             polygon = gdf.geometry[i]
             if polygon.contains(punkt):
-                st.write("The point you clicked on is in", gdf.name[i])
                 filter_var = gdf.name[i]
 
     ## END OF GET CLICK ON GEO UNIT ##
@@ -205,6 +210,7 @@ try:
                     #plot_bgcolor="#EFF2F6",
                     xaxis_title=None,
                     yaxis_title=None,
+                    yaxis = dict(visible=False)
                         )
                 plot_employer.update_traces(
                     marker_color="#09316B"
@@ -220,7 +226,7 @@ try:
                 df_filtered_pubdate = df_filtered_pubdate.sort_values(by="aktuelleVeroeffentlichungsdatum")
 
 
-                plot_pubdate = px.line(df_filtered_pubdate, x="aktuelleVeroeffentlichungsdatum", y="refnr", width=500, height=350)
+                plot_pubdate = px.line(df_filtered_pubdate, x="aktuelleVeroeffentlichungsdatum", y="refnr", width=500, height=350, text="refnr")
                 plot_pubdate.update_layout(
                     #paper_bgcolor="#EFF2F6",
                     #plot_bgcolor="#EFF2F6",
@@ -228,7 +234,7 @@ try:
                     yaxis_title=None,
                         )
                 plot_pubdate.update_traces(
-                    marker_color="#09316B"
+                    line_color="#09316B"
                         )
                 st.plotly_chart(plot_pubdate, use_container_width=True)
 
@@ -240,20 +246,10 @@ try:
                     #plot_bgcolor="#EFF2F6",
                     xaxis_title=None,
                     yaxis_title=None,
+                    yaxis = dict(visible=False)
                         )
                 plot_sector.update_traces(
                     marker_color="#09316B"
-                    )
-
-                plot_sector.add_annotation(
-                x="Sector",
-                xref="x",
-                yref="y",
-                font=dict(
-                    family="Courier New, monospace",
-                    size=16,
-                    color="#ffffff"
-                    ),
                     )
 
                 st.plotly_chart(plot_sector, use_container_width=True)
@@ -266,6 +262,7 @@ try:
                     #plot_bgcolor="#EFF2F6",
                     xaxis_title=None,
                     yaxis_title=None,
+                    yaxis = dict(visible=False)
                         )
                 plot_size.update_traces(
                     marker_color="#09316B"
@@ -274,4 +271,6 @@ try:
                 st.plotly_chart(plot_size, use_container_width=True)
 
 except NameError:
-    st.write("")
+    with col2:
+        time.sleep(2)
+        st.write("""<div class='cards_selection'>Please <b>select a geographical level</b> in the sidebar <b>and a region</b> on the map to aggregate the data accordingly!</div>""", unsafe_allow_html=True)
