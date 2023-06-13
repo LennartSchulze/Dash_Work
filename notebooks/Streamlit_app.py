@@ -11,9 +11,7 @@ from streamlit_folium import st_folium
 from shapely.geometry import Point
 from shapely.geometry.polygon import Polygon
 import plotly.express as px
-from google.cloud import storage
-import requests
-import json
+#from Dash_Work.notebooks.utils import get_data_with_cache
 
 st.set_page_config(layout="wide")
 
@@ -35,57 +33,25 @@ st.sidebar.title("Options")
 geo_level_options = ["Districts and Cities", "Bundeslaender"]
 geo_level_default = geo_level_options.index("Districts and Cities") #set default
 geo_level = st.sidebar.selectbox("Choose geographical level", options=geo_level_options, index=geo_level_default)
-## END OF CHOOSE DATA BASE FOR MAP ##
+
+sector_options = ["All Sectors", "Sector1","Sector2"]
+sector_default = sector_options.index("All Sectors") #set default
+sector = st.sidebar.selectbox("Focus on a specific sector", options=sector_options, index=sector_default)
+
+company_size_options = ["All Companies", "0-5 employees","6-20 employees", "20-200 employees","more than 200 employees"]
+company_size_default = company_size_options.index("All Companies") #set default
+company_size = st.sidebar.selectbox("Focus on a specific company size", options=company_size_options, index=company_size_default)
+
+skill_level_options = ["All Levels", "University Education", "Vocational Training", "No Training required"]
+skill_level_default = skill_level_options.index("All Levels")
+skill_level = st.sidebar.selectbox("Focus on a specific skill level", options=skill_level_options, index=skill_level_default)
+## END OF OPTIONS ##
+
 #### END OF SIDEBAR ####
 
 
-## GET THE GEO DATA FOR THE MAP ##
-@st.cache_data()
-def get_map(geolevel):
-    bucket_name = "dash_work"
-
-    pathdata = os.path.dirname(os.path.abspath(__file__))
-    if geolevel == "Districts and Cities":
-        loadfile = "counties"
-
-    if geolevel =="Bundeslaender":
-        loadfile = "states"
-
-    source_blob_name = f"{loadfile}.geo.json"
-    storage_client = storage.Client()
-    bucket = storage_client.bucket(bucket_name)
-
-    blob = bucket.blob(source_blob_name)
-    blob.download_to_filename(os.path.join(pathdata, "..", "..", "data","raw_generated", source_blob_name))
-
-    gdf = gpd.read_file(os.path.join(pathdata, "..", "..", "data","raw_generated", source_blob_name))
-    return gdf
-
-gdf = get_map(geo_level)
-## END OF GEO DATA FOR MAP ##
-
-## GET COLORS FOR CHOROPLETH MAP ##
-@st.cache_data()
-def get_map_data(geo_level):
-    if geo_level=="Districts and Cities":
-        filter_variable = "landkreis"
-    if geo_level=="Bundeslaender":
-        filter_variable = "bundesland"
-    url = "http://localhost:8000/maps"
-    params = {"geo_level": filter_variable}
-    response = requests.get(url, params)
-    return response, filter_variable
-
-response, filter_variable = get_map_data(geo_level)
-map_colors = pd.DataFrame()
-map_colors[filter_variable] = response.json().values()
-map_colors["NumberofJobs"] = response.json().keys()
-map_colors["NumberofJobs"] = map_colors["NumberofJobs"].astype(float)
-## FINISH GET COLORS FOR CHOROPLETH
-
 #### BODY ####
-pathbody = os.path.dirname(os.path.abspath(__file__))
-with open(os.path.join(pathbody, "style.css")) as f:
+with open('style.css') as f:
     st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
 
 st.title("Open positions in Germany")
@@ -96,45 +62,73 @@ col1, col2 = st.columns(2)
 
 with col1:
 
-    ## GET DATA FROM MASTER JOBS FILE ##
-    ## WILL BE DELETED WHEN GEOJSON FILES ARE COMPLETE
-    # @st.cache_data()
-    # def get_data():
-    #     df = pd.read_csv("/Users/lennartschulze/code/LennartSchulze/Dash_Work/notebooks/master_all_jobs.csv", sep=",")
-    #     return df
+    ## CHOOSE DATA BASE FOR MAP ##
+    chosen_map = f"{geo_level_options.index(geo_level)}{sector_options.index(sector)}{company_size_options.index(company_size)}{skill_level_options.index(skill_level)}"
+    ## END OF CHOOSE DATA BASE FOR MAP ##
 
-    # df = get_data()
-    # df["landkreis"] = df["landkreis_georef"]
+    ## GET THE GEO DATA FOR THE MAP ##
+    @st.cache_data()
+    def get_map(chosen_map):
+        if chosen_map == "0000":
+            loadfile = "counties"
+        if chosen_map =="1000":
+            loadfile = "states"
+        gdf = gpd.read_file(f"../../data/raw_generated/{loadfile}.geo.json")
+        return gdf
+
+    gdf = get_map(chosen_map)
+
+    ## END OF GETTING GEO DATA FOR THE MAP ##
+
+
+    ## GET DATA FROM MASTER JOBS FILE ##
+    @st.cache_data()
+    def get_data():
+        df = pd.read_csv("../../notebooks/master_all_jobs.csv", sep=",")
+        return df
+
+    df = get_data()
+    df["landkreis"] = df["landkreis_georef"]
+
     ## END OF GET DATA FROM MASTER JOBS FILE
 
-    # ## GET SCORE - CURRENTLY: ABSOLUTE NUMBER OF JOBS ONLINE PER GEO UNIT ##
-    if geo_level == "Bundeslaender":
-         grouper_var = "bundesland"
-         dropper_var = "landkreis"
-    else:
-         grouper_var = "landkreis"
-         dropper_var = "bundesland"
+    ## GET DATA FROM BIG QUERY ##
+    query = f"SELECT * FROM `{os.environ.get('GCP_PROJECT')}.master_all_jobs.jobs`"
 
-    # # THE FOLLOWING MUST GO TO PREPROCESSING #
-    # jobs_online = df.groupby(grouper_var).count().drop(columns=[dropper_var])
-    # jobs_online = jobs_online.reset_index()
-    # # UP MUST GO TO PREPROCESSING #
+    # @st.cache_data()
+    # def get_data_from_google():
+    #      df = get_data_with_cache(query)
+    #      return df
+    # df = get_data_from_google()
+
+    ## END OF GET DATA FROM BIG QUERY ##
+
+    ## GET SCORE - CURRENTLY: ABSOLUTE NUMBER OF JOBS ONLINE PER GEO UNIT ##
+    if geo_level == "Bundeslaender":
+        grouper_var = "bundesland"
+        dropper_var = "landkreis"
+    else:
+        grouper_var = "landkreis"
+        dropper_var = "bundesland"
+
+    # THE FOLLOWING MUST GO TO PREPROCESSING #
+    jobs_online = df.groupby(grouper_var).count().drop(columns=[dropper_var])
+    jobs_online = jobs_online.reset_index()
+    # UP MUST GO TO PREPROCESSING #
 
     gdf.index = gdf["name"]
     gdf[grouper_var] = gdf["name"]
 
+
     #### MAP ####
     m = folium.Map(location=[51.1657, 10.4515], tiles="cartodbpositron", zoom_start=5.5, width="100%", height=400)
-
 
     gjson = folium.Choropleth(
         geo_data=gdf,
         name="choropleth",
-        # data=jobs_online,
-        # columns=[grouper_var, "refnr"],
-        data=map_colors,
-        columns=[grouper_var, "NumberofJobs"],
-        key_on="feature.properties.name",
+        data=jobs_online,
+        columns=[grouper_var, "refnr"],
+        key_on="feature.id",
         fill_color="Blues",
         fill_opacity=0.7,
         line_opacity=1,
@@ -167,7 +161,7 @@ with col1:
 
 
 
-    # ## GET CLICK ON GEO UNIT ##
+    ## GET CLICK ON GEO UNIT ##
 
     output = st_folium(m, returned_objects=["last_object_clicked"], width="100%", height=600)
 
@@ -189,6 +183,7 @@ try:
         df_filtered = df[df["bundesland"]==filter_var]
     if grouper_var=="landkreis":
         df_filtered = df[df["landkreis"]==filter_var]
+
 ## END OF GET FILTERED DATA
 ## THE PART ABOVE WILL BE DONE BY THE GOOGLE QUERY
 

@@ -1,0 +1,99 @@
+/* Headline styling */
+h1#open-positions-in-germany {
+    font-size: 64px;
+    font-family: "Source Sans Pro", sans-serif;
+    color: #09316B;
+    padding-top: 0px;
+    padding-bottom: 40px;
+    text-align: center;
+    margin: 0px 10px 20px 10px;
+}
+
+div.css-z5fcl4 {
+    padding: 2rem 1rem 10rem;
+}
+
+/* Side-bar styling */
+div.css-1544g2n {
+    padding: 2rem 1rem 1.5rem;
+}
+
+/* Map styling */
+div#map_div {
+    display: flex;
+    justify-content: center;
+}
+
+/*.float-child {
+    width: 90%
+}*/
+
+/* Making top bar disappear */
+header.css-18ni7ap.e13qjvis2 {
+    display: none
+}
+
+div#block-container.css-z5fcl4 {
+    padding: 3rem 1rem 10rem;
+}
+
+/* Styling Cards right side*/
+.cards {
+    border-style: solid;
+    border-color: #DCDCDC;
+    border-radius: 0.25rem;
+    box-shadow: 3px 3px #EFF2F6;
+    /*background-color: #EFF2F6; */
+    padding: 0px 10px 30px 5px;
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+/* Employer graph
+.main-svg {
+    border-radius: 4px;
+    border-style: solid;
+    border-color: #DCDCDC;
+}*/
+
+/* Making Streamlit footer disappear */
+footer.css-164nlkn.e1g8pov61 {
+    display: none;
+}
+
+/*div.css-uu5b88.esravye0 div.css-uu5b88.esravye0 {
+    border-style: solid;
+    border-color: #DCDCDC;
+    border-radius: 4px;
+    box-shadow: 3px 3px #f0f0f0;
+    background-color: #EFF2F6;
+    padding:0px 10px 20px 5px;
+    width: 500px;
+}
+*/
+
+/* Tab styling*/
+.stTabs.css-p5arxg.e15kodlz0 {
+    padding: 5px;
+    border-style: solid;
+    border-color: #DCDCDC;
+    border-radius: 0.25rem;
+    width: 100%;
+    box-shadow: 3px 3px #EFF2F6;
+}
+
+/* Tab headers styling */
+
+[data-baseweb="tab-list"] [data-baseweb="tab-highlight"] {
+    background-color: #3868A1
+}
+
+[data-baseweb="tab-list"] [tabindex="0"] {
+    color: #3868A1;
+    font-weight: bold
+}
+
+[data-baseweb="tab-list"] [tabindex="-1"]:hover {
+    color: #3868A1;
+    font-weight:bold
+}
