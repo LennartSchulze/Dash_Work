@@ -54,7 +54,8 @@ def get_map(geolevel):
 
     source_blob_name = f"{loadfile}.geo.json"
     key_name = os.environ["KEY_NAME"]
-    credentials = service_account.Credentials.from_service_account_file(os.path.join(os.path.join(os.getcwd(),'key'),key_name))
+    credentials = service_account.Credentials.from_service_account_file(os.path.join(os.path.join(os.path.dirname(os.path.dirname(os.getcwd())),'key'),key_name))
+    
     storage_client = storage.Client(credentials=credentials)
     bucket = storage_client.bucket(bucket_name)
 
@@ -62,7 +63,7 @@ def get_map(geolevel):
     
     #blob.download_to_filename(os.path.dirnameos.path.join(pathdata, "..", "..", "data","raw_generated", source_blob_name))
     blob.download_to_filename(os.path.join(os.path.dirname(os.path.dirname(pathdata)),'data','raw_generated',source_blob_name))
-
+    
     gdf = gpd.read_file(os.path.join(os.path.dirname(os.path.dirname(pathdata)),'data','raw_generated',source_blob_name))
     return gdf
 
@@ -88,7 +89,7 @@ with col1:
     ## WILL BE DELETED WHEN GEOJSON FILES ARE COMPLETE
     @st.cache_data()
     def get_data():
-        df = pd.read_csv("../Dash_Work/notebooks/master_all_jobs.csv", sep=",")
+        df = pd.read_csv("../../notebooks/master_all_jobs.csv", sep=",")
         return df
 
     df = get_data()
