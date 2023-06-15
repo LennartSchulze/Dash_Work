@@ -26,14 +26,14 @@ def get_map(grouper_var, sector="All Sectors"):
     if sector == "All Sectors":
         query = f"""
             SELECT count({grouper_var}) as num_jobs, {grouper_var}
-            FROM wagon-bootcamp-384015.dash_work.master_all_jobs
+            FROM wagon-bootcamp-384015.dash_work.master_all_jobs_wow
             GROUP BY {grouper_var}
             """
         df = pd.read_gbq(query=query, project_id='wagon-bootcamp-384015',
                          credentials=credentials)
     else:
         query = f"""SELECT count({grouper_var}) as num_jobs, {grouper_var}
-            FROM wagon-bootcamp-384015.dash_work.master_all_jobs
+            FROM wagon-bootcamp-384015.dash_work.master_all_jobs_wow
             WHERE branchengruppe='{sector}'
             GROUP BY {grouper_var}
             """
@@ -44,7 +44,7 @@ def get_map(grouper_var, sector="All Sectors"):
 def top_5_employers(grouper_var, filter_var):
     query = f"""
         SELECT arbeitgeber, COUNT(arbeitgeber) as refnr
-        FROM wagon-bootcamp-384015.dash_work.master_all_jobs
+        FROM wagon-bootcamp-384015.dash_work.master_all_jobs_wow
         WHERE {grouper_var}='{filter_var}'
         GROUP BY arbeitgeber
         ORDER BY refnr DESC
@@ -58,7 +58,7 @@ def top_5_employers(grouper_var, filter_var):
 def top_5_branchengruppe(grouper_var, filter_var):
     query = f"""
         SELECT branchengruppe, COUNT(branchengruppe) as refnr
-        FROM wagon-bootcamp-384015.dash_work.master_all_jobs
+        FROM wagon-bootcamp-384015.dash_work.master_all_jobs_wow
         WHERE {grouper_var}='{filter_var}'
         GROUP BY branchengruppe
         ORDER BY refnr DESC
@@ -73,7 +73,7 @@ def pub_date(grouper_var, filter_var):
     query = f"""
         SELECT aktuelleVeroeffentlichungsdatum,
         COUNT(aktuelleVeroeffentlichungsdatum) as refnr
-        FROM wagon-bootcamp-384015.dash_work.master_all_jobs
+        FROM wagon-bootcamp-384015.dash_work.master_all_jobs_wow
         WHERE {grouper_var}='{filter_var}'
         GROUP BY aktuelleVeroeffentlichungsdatum
         ORDER BY aktuelleVeroeffentlichungsdatum
@@ -87,7 +87,7 @@ def company_sizes(grouper_var, filter_var):
     filter_var = str(filter_var)
     query = f"""
         SELECT betriebsgroesse, COUNT(betriebsgroesse) as refnr
-        FROM wagon-bootcamp-384015.dash_work.master_all_jobs
+        FROM wagon-bootcamp-384015.dash_work.master_all_jobs_wow
         WHERE {grouper_var}='{filter_var}'
         GROUP BY betriebsgroesse
         ORDER BY betriebsgroesse ASC

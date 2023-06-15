@@ -1,67 +1,47 @@
 
 import pandas as pd
-import pandas_gbq
 from google.oauth2 import service_account
 import os
-from google.cloud import storage
 from google.cloud import bigquery
+from bq_actions import save_dataframe_to_bq
 
-#os.path.join(os.path.join(os.path.dirname(os.getcwd()),'key'),key_name)
-key_name = 'wagon-bootcamp-384015-bc60d2550ebc.json'
-credentials = service_account.Credentials.from_service_account_file(os.path.join(os.path.join(os.path.dirname(os.getcwd()),'key'),key_name))
+pathdir = os.path.dirname(os.path.abspath(__file__))
+private_key = os.path.join(pathdir, '..', '..', '..', 'key.json')
+
+credentials = service_account.Credentials.from_service_account_file(
+    private_key
+)
+
+print("👀 Loading job details file from BQ")
 df_detail = pd.read_gbq('select * from dash_work.job_details', credentials=credentials)
+print(f"✅ JOb details file downloaded from BQ! Data size = {df_detail.shape}")
+
+print("🪚 🪠 🧽 Starting data cleaning process ")
 #drop columns in dataframe
 df_detail=df_detail.drop(["Unnamed_0", "Unnamed_1", "branche", "eintrittsdatum", "ersteVeroeffentlichungsdatum","titel"], axis=1)
+
+size_before = df_detail.shape[0]
 #drop duplicates
 df_detail.drop_duplicates(subset=['refnr'], inplace=True)
+dup_num = (size_before-df_detail.shape[0])
+print (f"Dropped {dup_num} duplicates")
+
 #add timestamp of access minus today in number of days
-df_detail['days_since_posting'] = (pd.to_datetime('today') -pd.to_datetime(df_detail['aktuelleVeroeffentlichungsdatum'])).dt.days
+#df_detail['days_since_posting'] = (pd.to_datetime('today') -pd.to_datetime(df_detail['aktuelleVeroeffentlichungsdatum'])).dt.days
+
 #keep only df["arbeitsort.land"] == "Deutschland"
 df_detail = df_detail[df_detail["arbeitsorte_land"] == "Deutschland"]
+
 # fill Arbeitsort_ort with "hybrid" if NaN
 df_detail['arbeitsorte_ort'].fillna("regional/hybrid", inplace=True)
 
-df_mapping =pd.read_csv('MASTER_MAPPING_attempt.csv', sep=";", encoding='latin-1')
-merged_df=df_detail.merge(df_mapping, how='inner',left_on='arbeitsorte_ort', right_on='arbeitsort.ort')
-merged_df = merged_df.rename(columns={'arbeitsort.ort': 'arbeitsort_ort'})
+print("🧚‍♀️ Data is clean now!")
 
+print("🏋️‍♀️ Final step: master mapping...")
+df_mapping = pd.read_csv('MASTER_MAPPING_attempt.csv', sep=";", encoding='latin-1')
+merged_df = df_detail.merge(df_mapping, how='inner', left_on='arbeitsorte_ort', right_on='arbeitsort.plz')
+merged_df = merged_df.rename(columns={'arbeitsort.plz': 'arbeitsort_ort', 'landkreis_georef': 'landkreis'})
 
-#send file to google cloud storage
-def save_dataframe_to_bq(
-        data: pd.DataFrame,
-        gcp_project:str,
-        bq_dataset:str,
-        table: str,
-        truncate: bool,
-        credentials
-    ) -> None:
-    """
-    - Save the DataFrame to BigQuery
-    - Empty the table beforehand if `truncate` is True, append otherwise
-    """
+print("🔥 Mapping complete! Loading dataframe to BQ!")
 
-    assert isinstance(data, pd.DataFrame)
-    full_table_name = f"{gcp_project}.{bq_dataset}.{table}"
-    print(f"\nSave data to BigQuery @ {full_table_name}...:")
-
-    # Load data onto full_table_name
-    data.columns = [f"_{column}" if not str(column)[0].isalpha() and not str(column)[0] == "_" else str(column) for column in data.columns]
-
-    client = bigquery.Client(credentials=credentials)
-
-    # Define write mode and schema
-    write_mode = "WRITE_TRUNCATE" if truncate else "WRITE_APPEND"
-    job_config = bigquery.LoadJobConfig(write_disposition=write_mode)
-
-    print(f"\n{'Write' if truncate else 'Append'} {full_table_name} ({data.shape[0]} rows)")
-
-    # Load data
-    job = client.load_table_from_dataframe(data, full_table_name, job_config=job_config)
-    result = job.result()  # wait for the job to complete
-
-    print(f":white_check_mark: Data saved to bigquery, with shape {data.shape}")
-
-save_dataframe_to_bq(merged_df, 'wagon-bootcamp-384015', 'dash_work', 'merged_df', truncate=True, credentials=credentials)
-
-#df_landkreis=merged_df.groupby("landkreis_georef")['refnr'].count()
-#df_bundesland=merged_df.groupby("bundesland")['refnr'].count()
+save_dataframe_to_bq(merged_df, 'wagon-bootcamp-384015', 'dash_work', 'master_all_jobs1', truncate=True)

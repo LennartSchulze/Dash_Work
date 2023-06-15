@@ -12,6 +12,8 @@ import plotly.express as px
 api_url = st.secrets["api_url"]
 #api_url="https://dashwork-qjpoayquoq-ew.a.run.app"
 
+api_url = 'http://127.0.0.1:8000'
+
 SECTORS = ["All Sectors",
                   "Arbeitnehmerüberlassung, Zeitarbeit",
                   "Einzelhandel, Großhandel, Außenhandel",
@@ -50,7 +52,7 @@ st.set_page_config(layout="wide")
 st.sidebar.title("Dash/Work")
 st.sidebar.write(
     '''
-    This is a Dashboard to get an overview on the state of the labor market in German regions and for different sectors. Based on data from the Bundesagentur für Arbeit (German Federal Employment Agency), the map displays how many jobs are currently open per inhabitant for each German district, city, and Bundesland. 
+    This is a Dashboard to get an overview on the state of the labor market in German regions and for different sectors. Based on data from the Bundesagentur für Arbeit (German Federal Employment Agency), the map displays how many jobs are currently open per inhabitant for each German district, city, and Bundesland.
     ''')
 st.sidebar.write("Find our team and contact information here: [GitHub Repository](https://github.com/LennartSchulze/Dash_Work)")
 
@@ -72,7 +74,7 @@ sector = st.sidebar.selectbox("Choose sector to focus on", options=sector_option
 #### END OF SIDEBAR ####
 
 ## GET THE GEO DATA FOR THE MAP ##
-@st.cache_data()
+#@st.cache_data()
 def get_map(geolevel):
 
     pathdata = os.path.dirname(os.path.abspath(__file__))
@@ -91,7 +93,7 @@ gdf = get_map(geo_level)
 ## END OF GEO DATA FOR MAP ##
 
 ## GET COLORS FOR CHOROPLETH MAP ##
-@st.cache_data()
+#@st.cache_data()
 def get_map_data(geo_level, sector):
     if geo_level=="Districts and Cities":
         filter_variable = "landkreis"
@@ -184,6 +186,7 @@ with col1:
 
     if output["last_object_clicked"] is not None:
         punkt = Point(output["last_object_clicked"]["lng"], output["last_object_clicked"]["lat"])
+        st.write("CLIKING IS FAST")
 
         for i in range(len(gdf.geometry)):
             polygon = gdf.geometry[i]
@@ -199,6 +202,8 @@ with col1:
         with col2:
             df_filtered_employer = requests.get(f"{api_url}/top_5_employers/", params=params).json()["result"]
             df_filtered_employer = pd.read_json(df_filtered_employer)
+
+            st.write(df_filtered_employer)
 
             df_filtered_branchengruppe = requests.get(f"{api_url}/top_5_branchengruppe/", params=params).json()["result"]
             df_filtered_branchengruppe = pd.read_json(df_filtered_branchengruppe)
@@ -222,7 +227,7 @@ with col1:
                 listTabs = ["Top Employers", "New Jobs Over Time", "Top Sectors","Company Sizes"]
                 whitespace = 15
                 tabs = st.tabs([s.center(whitespace,"\u2001") for s in listTabs])
-                
+
                 with tabs[0]:
                     st.write(f"""<b>Employers with most job offers in {filter_var}</b>""", unsafe_allow_html=True)
                     plot_employer = px.bar(df_filtered_employer, y="arbeitgeber", x="refnr", width=490, height=350, text_auto=True, orientation="h")
@@ -242,11 +247,11 @@ with col1:
                             "visible":False,
                         }
                         )
-                    
+
                     plot_employer.update_traces(
                         marker_color="#09316B"
                         )
-                    
+
                     st.plotly_chart(plot_employer, use_container_width=True)
 
                 with tabs[1]:
@@ -304,4 +309,3 @@ with col1:
         with col2:
             #time.sleep(2)
             st.write("""<div class='cards_selection'>Please <b>select a geographical level</b> in the sidebar <b>and a region</b> on the map to aggregate the data accordingly!</div>""", unsafe_allow_html=True)
-
